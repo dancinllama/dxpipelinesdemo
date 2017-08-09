@@ -10,7 +10,8 @@ pipelines:
     stage:
       - step:
           script:
-          - ech "In Stage"
+          - echo "Authenticating with hub org"
+          - sfdx force:auth:jwt:grant --clientid $CONSUMER_KEY --jwtkeyfile assets/server.key --username $USERNAME --setdefaultdevhubusername -a dxhub
     prod:
       - step:
           script:
