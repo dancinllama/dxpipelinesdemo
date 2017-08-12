@@ -1,3 +1,4 @@
+# 
 # This is a sample build configuration for all languages.
 # Check our guides at https://confluence.atlassian.com/x/VYk8Lw for more examples.
 # Only use spaces to indent your .yml configuration.
@@ -10,8 +11,23 @@ pipelines:
     stage:
       - step:
           script:
-          - echo "Authenticating with hub org"
-          - sfdx force:auth:jwt:grant --clientid $CONSUMER_KEY --jwtkeyfile assets/server.key --username $USERNAME --setdefaultdevhubusername -a dxhub
+          - echo "In Stage"
+          - echo "Authenticating with hub org..."
+          - echo "Clone Dir" $BITBUCKET_CLONE_DIR
+          - sfdx force:auth:jwt:grant --clientid $HUB_CONSUMER_KEY --jwtkeyfile $BITBUCKET_CLONE_DIR/assets/hub_server.key --username $HUB_USERNAME --setdefaultdevhubusername -a dxhub
+          - echo "Creating Scratch Org..."
+          - sfdx force:org:create -v dxhub -s -f config/project-scratch-def.json -a currentOrg
+          - echo "Pushing files to Scratch Org..."
+          - sfdx force:source:push -u currentOrg
+          - echo "Running Apex Unit Tests"
+          - sfdx force:apex:test:run -u currentOrg -r human
+          #- echo "Running Lightning Component Unit Tests"
+          #- sfdx force:lightning:test:run -a jasmineTests.app
+          - echo "Test passed, converting metadata for deployment..."
+          - sfdx force:source:convert -r force-app -d deploy
+          - echo "Deploying to stage environment..."
+          - sfdx force:auth:jwt:grant --clientid $STAGING_CONSUMER_KEY --jwtkeyfile $BITBUCKET_CLONE_DIR/assets/staging_server.key --username $STAGING_USERNAME -a staging
+          - sfdx force:mdapi:deploy -d ./deploy -u staging -w 15
     prod:
       - step:
           script:
